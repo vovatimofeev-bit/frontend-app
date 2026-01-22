@@ -18,34 +18,32 @@ type Answer = {
   durationMs: number;
 };
 
-const SILENCE_THRESHOLD = 0.02; // чувствительность
-const SILENCE_MS = 1500;       // пауза = конец ответа
+const SILENCE_THRESHOLD = 0.02;
+const SILENCE_MS = 1500;
 
-// Для примера — возьми свои 64/108 вопросов
 const questions: Question[] = [
   { id: 1, text: "Вы сейчас сидите?", type: "baseline" },
   { id: 2, text: "Вы видите этот текст?", type: "baseline" },
   { id: 3, text: "Вы всегда говорите правду?", type: "control" },
   { id: 4, text: "Вы скрывали переписку от партнёра?", type: "target" },
-  // … замени на свой полный набор
+  // 👉 можешь вставить все 108
 ];
 
 export default function VoiceOnlyTest() {
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
   const [status, setStatus] = useState<"init" | "listening" | "done">("init");
+  const [answers, setAnswers] = useState<Answer[]>([]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataRef = useRef<Float32Array | null>(null);
   const rafRef = useRef<number | null>(null);
 
   const speakingRef = useRef(false);
-  const lastSoundTsRef = useRef<number>(0);
-  const startSpeakTsRef = useRef<number>(0);
-  const sumLevelRef = useRef<number>(0);
-  const samplesRef = useRef<number>(0);
-  const peakRef = useRef<number>(0);
+  const lastSoundTsRef = useRef(0);
+  const startSpeakTsRef = useRef(0);
+  const sumLevelRef = useRef(0);
+  const samplesRef = useRef(0);
+  const peakRef = useRef(0);
 
   useEffect(() => {
     startMic();
@@ -55,7 +53,6 @@ export default function VoiceOnlyTest() {
 
   useEffect(() => {
     resetMetrics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
   async function startMic() {
@@ -63,12 +60,12 @@ export default function VoiceOnlyTest() {
     const ctx = new AudioContext();
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
+
     analyser.fftSize = 2048;
     src.connect(analyser);
 
     audioCtxRef.current = ctx;
     analyserRef.current = analyser;
-    dataRef.current = new Float32Array(analyser.fftSize);
 
     setStatus("listening");
     loop();
@@ -90,12 +87,15 @@ export default function VoiceOnlyTest() {
 
   function loop() {
     const analyser = analyserRef.current!;
-    const data = dataRef.current!;
-    analyser.getFloatTimeDomainData(data);
+    const buffer = new Float32Array(analyser.fftSize); // ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
+
+    analyser.getFloatTimeDomainData(buffer);
 
     let rms = 0;
-    for (let i = 0; i < data.length; i++) rms += data[i] * data[i];
-    rms = Math.sqrt(rms / data.length);
+    for (let i = 0; i < buffer.length; i++) {
+      rms += buffer[i] * buffer[i];
+    }
+    rms = Math.sqrt(rms / buffer.length);
 
     const now = performance.now();
 
@@ -108,7 +108,10 @@ export default function VoiceOnlyTest() {
       sumLevelRef.current += rms;
       samplesRef.current += 1;
       peakRef.current = Math.max(peakRef.current, rms);
-    } else if (speakingRef.current && now - lastSoundTsRef.current > SILENCE_MS) {
+    } else if (
+      speakingRef.current &&
+      now - lastSoundTsRef.current > SILENCE_MS
+    ) {
       finalizeAnswer();
     }
 
@@ -144,33 +147,23 @@ export default function VoiceOnlyTest() {
 
   if (status === "done") {
     return (
-      <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center">
-        <div className="max-w-md text-center space-y-4">
-          <div className="text-2xl">Тест завершён</div>
-          <div className="text-neutral-400">
-            Результаты сохранены в консоли (F12)
-          </div>
-        </div>
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-xl">Тест завершён</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
-      <div className="max-w-md w-full space-y-6 text-center">
-        <div className="text-sm text-neutral-400">
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="max-w-md text-center space-y-4">
+        <div className="text-sm opacity-60">
           Вопрос {index + 1} из {questions.length}
         </div>
-        <div className="text-xl leading-relaxed">
-          {questions[index].text}
-        </div>
-        <div className="text-neutral-400">
+        <div className="text-xl">{questions[index].text}</div>
+        <div className="text-sm opacity-50">
           Отвечайте голосом. Пауза завершает ответ.
         </div>
       </div>
     </main>
   );
 }
-
-
-
