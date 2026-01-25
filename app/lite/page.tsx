@@ -1,80 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { liteQuestions } from "@/app/data/questions-lite";
 
-const questions: string[] = [
-  "Вы понимаете, что сейчас будет происходить?",
-  "Вы даёте согласие на прохождение этого теста?",
-  "Вы готовы следовать инструкциям?",
-  "Ваше текущее состояние можно назвать обычным?",
-  "Вам сейчас комфортно продолжать?",
-  "Вы готовы начать тестирование?",
-
-  "Вы ощущаете опору под телом?",
-  "Вы осознаёте своё дыхание?",
-  "Ваше дыхание сейчас ровное?",
-  "Вы замечаете паузы между вопросами?",
-  "Вы чувствуете напряжение в теле?",
-  "Вы замечаете биение сердца?",
-  "Ваше внимание сейчас устойчиво?",
-  "Вам легко удерживать фокус?",
-  "Вы осознаёте положение своего тела?",
-  "Ваши мышцы сейчас скорее расслаблены?",
-  "Вы замечаете фоновые звуки?",
-  "Они отвлекают вас?",
-  "Ваше состояние менялось с начала теста?",
-  "Вам комфортен текущий темп?",
-
-  "За всю жизнь вы хоть раз говорили неправду?",
-  "Вам когда-нибудь было стыдно за свои поступки?",
-  "Вы когда-либо нарушали обещания?",
-  "Вы испытывали чувство вины?",
-  "Вы скрывали правду, чтобы избежать последствий?",
-  "Вы лгали из вежливости?",
-  "Вы приукрашивали факты, рассказывая о себе?",
-  "Вы считаете себя честным человеком?",
-  "Вы допускаете, что можете ошибаться?",
-  "Вы стараетесь выглядеть лучше в глазах других?",
-
-  "Вы состоите в значимых отношениях?",
-  "Эти отношения для вас важны?",
-  "Вы испытывали сомнения в этих отношениях?",
-  "Вам было сложно говорить о чувствах открыто?",
-  "Вы ощущали внутренний конфликт, связанный с партнёром?",
-  "Вы что-то не озвучивали, чтобы избежать напряжения?",
-  "Вы боялись последствий откровенности?",
-  "Вы чувствовали эмоциональную дистанцию?",
-  "Вы ощущали вину, не обсуждая её напрямую?",
-  "Вы считаете доверие важным элементом отношений?",
-  "Вы считаете допустимым личное пространство в паре?",
-  "Вы иногда сомневались в своём выборе?",
-  "Вы боялись потерять эти отношения?",
-  "Вы старались сохранять образ надёжности?",
-  "Вы чувствовали, что вас не до конца понимают?",
-  "Вы чувствовали, что не до конца откровенны?",
-  "Вы ощущали внутреннее противоречие?",
-  "Эти вопросы вызывают у вас напряжение?",
-
-  "Вы анализируете не только вопрос, но и свою реакцию?",
-  "Вы пытаетесь предугадать следующий вопрос?",
-  "Вы сравниваете вопросы между собой?",
-  "Вы возвращаетесь мысленно к предыдущим ответам?",
-  "Вы стараетесь отвечать «правильно»?",
-  "Вы ощущаете изменение своего состояния?",
-  "Вы контролируете ответы сознательно?",
-  "Вы думаете о результате теста?",
-  "Вы чувствуете усталость?",
-  "Вы замечаете снижение концентрации?",
-
-  "Вы чувствуете, что тест подходит к завершению?",
-  "Ваше напряжение сейчас выше, чем в начале?",
-  "Вы чувствуете облегчение?",
-  "Вы считаете свои реакции последовательными?",
-  "Вы готовы завершить тестирование?",
-  "Тест завершён."
-];
-
-export default function Page() {
+export default function LitePage() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
   const [index, setIndex] = useState(0);
 
@@ -90,7 +19,6 @@ export default function Page() {
 
     async function initMic() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -132,7 +60,7 @@ export default function Page() {
       cooldownRef.current = true;
 
       setIndex((prev) => {
-        if (prev < questions.length - 1) return prev + 1;
+        if (prev < liteQuestions.length - 1) return prev + 1;
         setStage("end");
         return prev;
       });
@@ -145,16 +73,23 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
+  /* ================= START ================= */
+
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h1 className="text-3xl font-semibold">
-            Poligram LITE
+            Психологический тест для пар POLIGRAMM Lite
           </h1>
+
           <p className="text-neutral-300 leading-relaxed">
-            Лёгкая версия теста.
+            Основан на подходах, применяемых в закрытых системах проверки достоверности.
+            <br /><br />
+            Использует логику протокольного опроса, применяемого в
+            высоконагруженных условиях и аналитических сценариях.
           </p>
+
           <button
             onClick={() => setStage("test")}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
@@ -166,37 +101,63 @@ export default function Page() {
     );
   }
 
+  /* ================= END ================= */
+
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
-          <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
+          <h2 className="text-2xl font-semibold">
+            Вы завершили тестирование
+          </h2>
+
           <p className="text-neutral-300 leading-relaxed">
             Результаты тестирования обрабатываются индивидуально.
+            <br /><br />
+            В течение 24 часов вы получите файл с аналитическим заключением
+            на указанный e-mail.
+            <br /><br />
+            Конфиденциальность гарантирована.
+            Данные не передаются третьим лицам.
           </p>
+
+          <input
+            type="email"
+            placeholder="Укажите свой e-mail"
+            className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
+          />
+
+          <p className="text-xs text-neutral-500">
+            E-mail используется только для отправки результата
+          </p>
+
           <button className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded">
-            Готово
+            Получить результат
           </button>
         </div>
       </main>
     );
   }
 
+  /* ================= TEST ================= */
+
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
         <div className="text-sm text-neutral-400">
-          Вопрос {index + 1} из {questions.length}
+          Вопрос {index + 1} из {liteQuestions.length}
         </div>
 
         <div className="text-2xl leading-relaxed">
-          {questions[index]}
+          {liteQuestions[index].text}
         </div>
 
         <div className="h-1 bg-neutral-800 rounded">
           <div
             className="h-1 bg-neutral-300 rounded transition-all"
-            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+            style={{
+              width: `${((index + 1) / liteQuestions.length) * 100}%`,
+            }}
           />
         </div>
       </div>
