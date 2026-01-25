@@ -1,7 +1,9 @@
-import TestRunner from "@/app/components/TestRunner";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 
 const questions: string[] = [
-  // 1–10 ВХОД И СОГЛАСИЕ
+  // сюда вставь 108 вопросов (я их вставил ниже)
   "Вы понимаете, что сейчас будет происходить?",
   "Вы даёте согласие на прохождение теста?",
   "Вы готовы следовать инструкциям до конца?",
@@ -13,7 +15,6 @@ const questions: string[] = [
   "Вы готовы быть внимательны к своим реакциям?",
   "Вы готовы начать процедуру?",
 
-  // 11–30 ФОКУС НА СОСТОЯНИИ
   "Вы ощущаете опору под телом?",
   "Вы осознаёте своё дыхание?",
   "Ваше дыхание сейчас ровное?",
@@ -24,6 +25,7 @@ const questions: string[] = [
   "Вам легко удерживать фокус?",
   "Вы осознаёте положение своего тела?",
   "Ваши мышцы сейчас расслаблены?",
+
   "Вы ощущаете вес век?",
   "Вы моргаете реже обычного?",
   "Вы замечаете фоновые звуки?",
@@ -35,7 +37,6 @@ const questions: string[] = [
   "Вы чувствуете внутреннюю собранность?",
   "Вы готовы перейти дальше?",
 
-  // 31–45 КАЛИБРОВКА ЧЕСТНОСТИ
   "За всю жизнь вы хоть раз говорили неправду?",
   "Вам когда-нибудь было стыдно за свой поступок?",
   "Вы когда-либо нарушали обещание?",
@@ -46,13 +47,13 @@ const questions: string[] = [
   "Вы оправдывали себя задним числом?",
   "Вы считаете себя честным человеком?",
   "Вы считаете себя полностью честным человеком?",
+
   "Вы допускаете, что можете ошибаться?",
   "Вам важно выглядеть достойно в глазах других?",
   "Вы стремитесь к одобрению?",
   "Вам сложно признавать ошибки?",
   "Вы готовы отвечать максимально искренне?",
 
-  // 46–70 ОТНОШЕНИЯ (БЕЗ ОБВИНЕНИЙ)
   "Вы состоите в значимых отношениях?",
   "Эти отношения для вас важны?",
   "Вы испытывали сомнения в этих отношениях?",
@@ -63,6 +64,7 @@ const questions: string[] = [
   "Вы чувствовали эмоциональную дистанцию?",
   "Вы испытывали влечение, которое не обсуждали?",
   "Вы чувствовали вину, не называя её прямо?",
+
   "Вы ощущали напряжение в теме доверия?",
   "Вы считаете доверие важным элементом отношений?",
   "Вы считаете допустимым личное пространство?",
@@ -73,13 +75,13 @@ const questions: string[] = [
   "Вы чувствовали, что не до конца откровенны?",
   "Вы ощущали внутреннее противоречие?",
   "Вы избегали сложных разговоров?",
+
   "Вы чувствовали напряжение, отвечая на эти вопросы?",
   "Это напряжение сохраняется сейчас?",
   "Вы осознаёте свои реакции?",
   "Вы стараетесь контролировать ответы?",
   "Вы готовы продолжать?",
 
-  // 71–95 МЕТАКОНТРОЛЬ — СЕРДЦЕ PRO
   "Вы анализируете не вопрос, а свою реакцию?",
   "Вы предугадываете следующий вопрос?",
   "Вы сравниваете вопросы между собой?",
@@ -90,6 +92,7 @@ const questions: string[] = [
   "Вы ощущаете изменение состояния?",
   "Вы внутренне оправдываетесь?",
   "Вы контролируете дыхание сознательно?",
+
   "Вам стало сложнее отвечать быстро?",
   "Вы чувствуете сухость во рту?",
   "Вы чувствуете изменение сердцебиения?",
@@ -100,13 +103,13 @@ const questions: string[] = [
   "Вы ощущаете напряжение?",
   "Вы чувствуете снижение концентрации?",
   "Вы замечаете это прямо сейчас?",
+
   "Вам хочется ускорить процесс?",
   "Вам хочется, чтобы тест закончился?",
   "Вы всё ещё стараетесь быть точным?",
   "Вы сомневаетесь в части ответов?",
   "Вы осознаёте это сомнение?",
 
-  // 96–108 ЗАВЕРШЕНИЕ
   "Вы чувствуете усталость?",
   "Ваше напряжение выше, чем в начале?",
   "Вы чувствуете облегчение?",
@@ -117,11 +120,156 @@ const questions: string[] = [
   "Вы готовы закончить тест?",
   "Вы согласны с завершением?",
   "Вы чувствуете завершённость процесса?",
+
   "Вы возвращаетесь к обычному состоянию?",
   "Вы готовы продолжить день?",
   "Тест завершён."
 ];
 
-export default function ProPage() {
-  return <TestRunner questions={questions} />;
+export default function Page() {
+  const [stage, setStage] = useState<"start" | "test" | "end">("start");
+  const [index, setIndex] = useState(0);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataRef = useRef<Float32Array | null>(null);
+
+  const isListeningRef = useRef(false);
+  const cooldownRef = useRef(false);
+
+  useEffect(() => {
+    if (stage !== "test") return;
+
+    async function initMic() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      dataRef.current = new Float32Array(analyser.fftSize);
+
+      isListeningRef.current = true;
+      listen();
+    }
+
+    initMic();
+
+    return () => {
+      isListeningRef.current = false;
+      audioContextRef.current?.close();
+    };
+  }, [stage]);
+
+  function listen() {
+    if (!isListeningRef.current) return;
+
+    const analyser = analyserRef.current!;
+    const data = dataRef.current!;
+
+    analyser.getFloatTimeDomainData(data);
+
+    let rms = 0;
+    for (let i = 0; i < data.length; i++) {
+      rms += data[i] * data[i];
+    }
+    rms = Math.sqrt(rms / data.length);
+
+    if (rms > 0.03 && !cooldownRef.current) {
+      cooldownRef.current = true;
+
+      setIndex((prev) => {
+        if (prev < questions.length - 1) return prev + 1;
+        setStage("end");
+        return prev;
+      });
+
+      setTimeout(() => {
+        cooldownRef.current = false;
+      }, 1200);
+    }
+
+    requestAnimationFrame(listen);
+  }
+
+  if (stage === "start") {
+    return (
+      <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
+        <div className="max-w-xl text-center space-y-6">
+          <h1 className="text-3xl font-semibold">
+            Психологический тест для пар «Poligram»
+          </h1>
+          <p className="text-neutral-300 leading-relaxed">
+            Этот тест фиксирует реакции на вопросы, которые редко задают вслух.
+            Используется методика последовательных вопросов с анализом голосовой реакции.
+          </p>
+          <button
+            onClick={() => setStage("test")}
+            className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
+          >
+            Начать тест
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (stage === "end") {
+    return (
+      <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
+        <div className="max-w-xl text-center space-y-6">
+          <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
+          <p className="text-neutral-300 leading-relaxed">
+            Результаты тестирования обрабатываются индивидуально.
+            <br /><br />
+            В течение 24 часов вы получите файл с аналитическим заключением
+            на указанный e-mail.
+            <br /><br />
+            Конфиденциальность гарантирована.
+            Данные не передаются третьим лицам.
+          </p>
+
+          <input
+            type="email"
+            placeholder="Введите ваш e-mail"
+            className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
+          />
+
+          <p className="text-xs text-neutral-500">
+            E-mail используется только для отправки результата
+          </p>
+
+          <button className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded">
+            Получить результат
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
+      <div className="max-w-xl text-center space-y-6">
+        <div className="text-sm text-neutral-400">
+          Вопрос {index + 1} из {questions.length}
+        </div>
+
+        <div className="text-2xl leading-relaxed">
+          {questions[index]}
+        </div>
+
+        <div className="h-1 bg-neutral-800 rounded">
+          <div
+            className="h-1 bg-neutral-300 rounded transition-all"
+            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+          />
+        </div>
+      </div>
+    </main>
+  );
 }
