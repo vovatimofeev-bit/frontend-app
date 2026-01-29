@@ -110,17 +110,20 @@ const questions: string[] = [
   "Вы чувствуете завершённость процесса?",
   "Вы возвращаетесь к обычному состоянию?",
   "Вы готовы продолжить день?",
-  "Тест завершён."
+  "Вы довольны?"
 ];
 
 export default function Page() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataRef = useRef<Float32Array | null>(null);
+
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
@@ -157,6 +160,7 @@ export default function Page() {
 
     const analyser = analyserRef.current!;
     const data = dataRef.current!;
+
     analyser.getFloatTimeDomainData(data);
 
     let rms = 0;
@@ -165,34 +169,15 @@ export default function Page() {
 
     if (rms > 0.03 && !cooldownRef.current) {
       cooldownRef.current = true;
-
       setIndex((prev) => {
         if (prev < questions.length - 1) return prev + 1;
         setStage("end");
         return prev;
       });
-
       setTimeout(() => (cooldownRef.current = false), 1200);
     }
 
     requestAnimationFrame(listen);
-  }
-
-  async function handleSendResult() {
-    if (!email) return alert("Введите email!");
-
-    const response = await fetch("https://poligramm-server.vercel.app/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        version: "PRO",
-        email,
-        metrics: [], // сюда реальные метрики можно вставить
-      }),
-    });
-
-    const data = await response.json();
-    if (data.status === "ok") alert("Результат отправлен на почту!");
   }
 
   /* ================= START ================= */
@@ -204,7 +189,7 @@ export default function Page() {
             Психологический тест для пар Poligramm PRO
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки
+            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
             и высоконагруженных сценариях.
           </p>
           <button
@@ -226,9 +211,10 @@ export default function Page() {
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
           <p className="text-neutral-300 leading-relaxed">
             Результаты тестирования обрабатываются индивидуально.
-            <br />
-            В течение 24 часов вы получите файл с аналитическим заключением на указанный e-mail.
             <br /><br />
+            В течение 24 часов вы получите файл с аналитическим заключением
+            на указанный e-mail.
+            <br/><br/>
             Конфиденциальность гарантирована. Данные не передаются третьим лицам.
           </p>
 
@@ -245,11 +231,39 @@ export default function Page() {
           </p>
 
           <button
-            onClick={handleSendResult}
+            onClick={async () => {
+              if (!email) return setMessage("Введите e-mail");
+              setSending(true);
+              setMessage("");
+
+              try {
+                const res = await fetch("https://poligram-server.vercel.app/submit", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    email,
+                    version: "PRO",
+                    metrics: [], // сюда можно добавить реальные метрики
+                  }),
+                });
+
+                const data = await res.json();
+                if (data.status === "ok") setMessage("Результат успешно отправлен на e-mail!");
+                else setMessage("Ошибка при отправке. Попробуйте позже.");
+              } catch (err) {
+                console.error(err);
+                setMessage("Ошибка при отправке. Попробуйте позже.");
+              } finally {
+                setSending(false);
+              }
+            }}
+            disabled={sending}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
           >
-            Получить результат
+            {sending ? "Отправка..." : "Получить результат"}
           </button>
+
+          {message && <p className="text-sm text-yellow-400">{message}</p>}
         </div>
       </main>
     );
