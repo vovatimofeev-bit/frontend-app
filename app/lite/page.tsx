@@ -17,8 +17,16 @@ export default function LitePage() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
+  // ✅ метрики Lite
+  const testStartRef = useRef<number | null>(null);
+  const questionTimesRef = useRef<number[]>([]);
+  const lastQuestionTimeRef = useRef<number>(Date.now());
+
   useEffect(() => {
     if (stage !== "test") return;
+
+    testStartRef.current = Date.now();
+    lastQuestionTimeRef.current = Date.now();
 
     async function initMic() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -59,6 +67,10 @@ export default function LitePage() {
 
     if (rms > 0.03 && !cooldownRef.current) {
       cooldownRef.current = true;
+
+      const now = Date.now();
+      questionTimesRef.current.push(now - lastQuestionTimeRef.current);
+      lastQuestionTimeRef.current = now;
 
       setIndex((prev) => {
         if (prev < liteQuestions.length - 1) return prev + 1;
@@ -128,6 +140,17 @@ export default function LitePage() {
               setSending(true);
               setMessage("");
 
+              const totalTime =
+                testStartRef.current ? Date.now() - testStartRef.current : null;
+
+              const metrics = {
+                version: "LITE",
+                totalQuestions: liteQuestions.length,
+                questionTimes: questionTimesRef.current,
+                totalTime,
+                timestamp: new Date().toISOString()
+              };
+
               try {
                 const res = await fetch("https://poligram-server.vercel.app/submit", {
                   method: "POST",
@@ -135,7 +158,7 @@ export default function LitePage() {
                   body: JSON.stringify({
                     email,
                     version: "Lite",
-                    metrics: [], // сюда можно добавить реальные метрики
+                    metrics,
                   }),
                 });
 

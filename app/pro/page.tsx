@@ -127,8 +127,16 @@ export default function Page() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
+  // ✅ метрики
+  const testStartRef = useRef<number | null>(null);
+  const questionTimesRef = useRef<number[]>([]);
+  const lastQuestionTimeRef = useRef<number>(Date.now());
+
   useEffect(() => {
     if (stage !== "test") return;
+
+    testStartRef.current = Date.now();
+    lastQuestionTimeRef.current = Date.now();
 
     async function initMic() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -169,11 +177,17 @@ export default function Page() {
 
     if (rms > 0.03 && !cooldownRef.current) {
       cooldownRef.current = true;
+
+      const now = Date.now();
+      questionTimesRef.current.push(now - lastQuestionTimeRef.current);
+      lastQuestionTimeRef.current = now;
+
       setIndex((prev) => {
         if (prev < questions.length - 1) return prev + 1;
         setStage("end");
         return prev;
       });
+
       setTimeout(() => (cooldownRef.current = false), 1200);
     }
 
@@ -209,14 +223,6 @@ export default function Page() {
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
-          <p className="text-neutral-300 leading-relaxed">
-            Результаты тестирования обрабатываются индивидуально.
-            <br /><br />
-            В течение 24 часов вы получите файл с аналитическим заключением
-            на указанный e-mail.
-            <br/><br/>
-            Конфиденциальность гарантирована. Данные не передаются третьим лицам.
-          </p>
 
           <input
             type="email"
@@ -226,15 +232,22 @@ export default function Page() {
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
           />
 
-          <p className="text-xs text-neutral-500">
-            E-mail используется только для отправки результата
-          </p>
-
           <button
             onClick={async () => {
               if (!email) return setMessage("Введите e-mail");
               setSending(true);
               setMessage("");
+
+              const totalTime =
+                testStartRef.current ? Date.now() - testStartRef.current : null;
+
+              const metrics = {
+                version: "PRO",
+                totalQuestions: questions.length,
+                questionTimes: questionTimesRef.current,
+                totalTime,
+                timestamp: new Date().toISOString()
+              };
 
               try {
                 const res = await fetch("https://poligram-server.vercel.app/submit", {
@@ -243,16 +256,15 @@ export default function Page() {
                   body: JSON.stringify({
                     email,
                     version: "PRO",
-                    metrics: [], // сюда можно добавить реальные метрики
+                    metrics
                   }),
                 });
 
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат успешно отправлен на e-mail!");
-                else setMessage("Ошибка при отправке. Попробуйте позже.");
-              } catch (err) {
-                console.error(err);
-                setMessage("Ошибка при отправке. Попробуйте позже.");
+                if (data.status === "ok") setMessage("Результат успешно отправлен!");
+                else setMessage("Ошибка при отправке.");
+              } catch {
+                setMessage("Ошибка при отправке.");
               } finally {
                 setSending(false);
               }
