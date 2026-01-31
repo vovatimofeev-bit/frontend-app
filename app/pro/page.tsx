@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { proQuestions } from "@/app/data/questions";
-
+import { questions } from "@/app/data/questions";
 
 export default function Page() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
@@ -79,7 +78,7 @@ export default function Page() {
 
         questionStartRef.current = now;
 
-        if (prev < proQuestions.length - 1) return prev + 1;
+        if (prev < questions.length - 1) return prev + 1;
         setStage("end");
         return prev;
       });
@@ -90,7 +89,7 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
-  // ===== START (ВОЗВРАЩЕНО КАК БЫЛО) =====
+  // ===== START =====
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -171,17 +170,17 @@ export default function Page() {
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
         <div className="text-sm text-neutral-400">
-          Вопрос {index + 1} из {proQuestions.length}
+          Вопрос {index + 1} из {questions.length}
         </div>
 
         <div className="text-2xl leading-relaxed">
-          {proQuestions[index].text}
+          {questions[index]}
         </div>
 
         <div className="h-1 bg-neutral-800 rounded">
           <div
             className="h-1 bg-neutral-300 rounded transition-all"
-            style={{ width: `${((index + 1) / proQuestions.length) * 100}%` }}
+            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
           />
         </div>
       </div>
