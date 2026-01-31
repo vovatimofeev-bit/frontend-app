@@ -17,16 +17,12 @@ export default function LitePage() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  // ✅ метрики Lite
-  const testStartRef = useRef<number | null>(null);
-  const questionTimesRef = useRef<number[]>([]);
-  const lastQuestionTimeRef = useRef<number>(Date.now());
+  // ✅ NEW — METRICS
+  const metricsRef = useRef<any[]>([]);
+  const questionStartRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (stage !== "test") return;
-
-    testStartRef.current = Date.now();
-    lastQuestionTimeRef.current = Date.now();
 
     async function initMic() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -42,6 +38,7 @@ export default function LitePage() {
       dataRef.current = new Float32Array(analyser.fftSize);
 
       isListeningRef.current = true;
+      questionStartRef.current = Date.now();
       listen();
     }
 
@@ -68,11 +65,20 @@ export default function LitePage() {
     if (rms > 0.03 && !cooldownRef.current) {
       cooldownRef.current = true;
 
-      const now = Date.now();
-      questionTimesRef.current.push(now - lastQuestionTimeRef.current);
-      lastQuestionTimeRef.current = now;
-
       setIndex((prev) => {
+        const now = Date.now();
+
+        metricsRef.current.push({
+          block: "lite",
+          questionIndex: prev,
+          voiceRmsAvg: rms,
+          voiceRmsPeak: rms,
+          responseTimeMs: now - questionStartRef.current,
+          timestamp: now
+        });
+
+        questionStartRef.current = now;
+
         if (prev < liteQuestions.length - 1) return prev + 1;
         setStage("end");
         return prev;
@@ -84,7 +90,6 @@ export default function LitePage() {
     requestAnimationFrame(listen);
   }
 
-  /* ================= START ================= */
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -92,10 +97,6 @@ export default function LitePage() {
           <h1 className="text-3xl font-semibold">
             Психологический тест для пар Poligramm Lite
           </h1>
-          <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
-            и высоконагруженных сценариях.
-          </p>
           <button
             onClick={() => setStage("test")}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
@@ -107,20 +108,11 @@ export default function LitePage() {
     );
   }
 
-  /* ================= END ================= */
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
-          <p className="text-neutral-300 leading-relaxed">
-            Результаты тестирования обрабатываются индивидуально.
-            <br /><br />
-            В течение 24 часов вы получите файл с аналитическим заключением
-            на указанный e-mail.
-            <br/><br/>
-            Конфиденциальность гарантирована. Данные не передаются третьим лицам.
-          </p>
 
           <input
             type="email"
@@ -130,44 +122,28 @@ export default function LitePage() {
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
           />
 
-          <p className="text-xs text-neutral-500">
-            E-mail используется только для отправки результата
-          </p>
-
           <button
             onClick={async () => {
               if (!email) return setMessage("Введите e-mail");
               setSending(true);
               setMessage("");
 
-              const totalTime =
-                testStartRef.current ? Date.now() - testStartRef.current : null;
-
-              const metrics = {
-                version: "LITE",
-                totalQuestions: liteQuestions.length,
-                questionTimes: questionTimesRef.current,
-                totalTime,
-                timestamp: new Date().toISOString()
-              };
-
               try {
-                const res = await fetch("https://poligram-server.vercel.app/submit", {
+                const res = await fetch("https://poligram-server.vercel.app/api/submit", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     email,
-                    version: "Lite",
-                    metrics,
+                    version: "LITE",
+                    metrics: metricsRef.current
                   }),
                 });
 
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат успешно отправлен на e-mail!");
-                else setMessage("Ошибка при отправке. Попробуйте позже.");
-              } catch (err) {
-                console.error(err);
-                setMessage("Ошибка при отправке. Попробуйте позже.");
+                if (data.status === "ok") setMessage("Результат отправлен");
+                else setMessage("Ошибка при отправке.");
+              } catch {
+                setMessage("Ошибка при отправке.");
               } finally {
                 setSending(false);
               }
@@ -175,7 +151,7 @@ export default function LitePage() {
             disabled={sending}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
           >
-            {sending ? "Отправка..." : "Получить результат"}
+            {sending ? "Отправка..." : "Отправить результат"}
           </button>
 
           {message && <p className="text-sm text-yellow-400">{message}</p>}
@@ -184,7 +160,6 @@ export default function LitePage() {
     );
   }
 
-  /* ================= TEST ================= */
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
@@ -192,12 +167,6 @@ export default function LitePage() {
           Вопрос {index + 1} из {liteQuestions.length}
         </div>
         <div className="text-2xl leading-relaxed">{liteQuestions[index].text}</div>
-        <div className="h-1 bg-neutral-800 rounded">
-          <div
-            className="h-1 bg-neutral-300 rounded transition-all"
-            style={{ width: `${((index + 1) / liteQuestions.length) * 100}%` }}
-          />
-        </div>
       </div>
     </main>
   );

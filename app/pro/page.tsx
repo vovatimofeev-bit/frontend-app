@@ -127,16 +127,12 @@ export default function Page() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  // ✅ метрики
-  const testStartRef = useRef<number | null>(null);
-  const questionTimesRef = useRef<number[]>([]);
-  const lastQuestionTimeRef = useRef<number>(Date.now());
+  // ✅ NEW — METRICS STORAGE
+  const metricsRef = useRef<any[]>([]);
+  const questionStartRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (stage !== "test") return;
-
-    testStartRef.current = Date.now();
-    lastQuestionTimeRef.current = Date.now();
 
     async function initMic() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -152,6 +148,7 @@ export default function Page() {
       dataRef.current = new Float32Array(analyser.fftSize);
 
       isListeningRef.current = true;
+      questionStartRef.current = Date.now();
       listen();
     }
 
@@ -178,11 +175,20 @@ export default function Page() {
     if (rms > 0.03 && !cooldownRef.current) {
       cooldownRef.current = true;
 
-      const now = Date.now();
-      questionTimesRef.current.push(now - lastQuestionTimeRef.current);
-      lastQuestionTimeRef.current = now;
-
       setIndex((prev) => {
+        const now = Date.now();
+
+        metricsRef.current.push({
+          block: "pro",
+          questionIndex: prev,
+          voiceRmsAvg: rms,
+          voiceRmsPeak: rms,
+          responseTimeMs: now - questionStartRef.current,
+          timestamp: now
+        });
+
+        questionStartRef.current = now;
+
         if (prev < questions.length - 1) return prev + 1;
         setStage("end");
         return prev;
@@ -194,7 +200,6 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
-  /* ================= START ================= */
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -217,7 +222,6 @@ export default function Page() {
     );
   }
 
-  /* ================= END ================= */
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -238,33 +242,22 @@ export default function Page() {
               setSending(true);
               setMessage("");
 
-              const totalTime =
-                testStartRef.current ? Date.now() - testStartRef.current : null;
-
-              const metrics = {
-                version: "PRO",
-                totalQuestions: questions.length,
-                questionTimes: questionTimesRef.current,
-                totalTime,
-                timestamp: new Date().toISOString()
-              };
-
               try {
-                const res = await fetch("https://poligram-server.vercel.app/submit", {
+                const res = await fetch("https://poligram-server.vercel.app/api/submit", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     email,
                     version: "PRO",
-                    metrics
+                    metrics: metricsRef.current
                   }),
                 });
 
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат успешно отправлен!");
-                else setMessage("Ошибка при отправке.");
+                if (data.status === "ok") setMessage("Результат отправлен");
+                else setMessage("Ошибка при отправке. Попробуйте позже.");
               } catch {
-                setMessage("Ошибка при отправке.");
+                setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
               }
@@ -272,7 +265,7 @@ export default function Page() {
             disabled={sending}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
           >
-            {sending ? "Отправка..." : "Получить результат"}
+            {sending ? "Отправка..." : "Отправить результат"}
           </button>
 
           {message && <p className="text-sm text-yellow-400">{message}</p>}
@@ -281,7 +274,6 @@ export default function Page() {
     );
   }
 
-  /* ================= TEST ================= */
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
