@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// ✅ ВСЕ вопросы PRO
 const questions: string[] = [
   "Вы понимаете, что сейчас будет происходить?",
   "Вы даёте согласие на прохождение теста?",
@@ -127,7 +128,7 @@ export default function Page() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  // ✅ NEW — METRICS STORAGE
+  // METRICS STORAGE
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -179,7 +180,6 @@ export default function Page() {
         const now = Date.now();
 
         metricsRef.current.push({
-          block: "pro",
           questionIndex: prev,
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
@@ -228,6 +228,7 @@ export default function Page() {
         <div className="max-w-xl text-center space-y-6">
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
 
+          {/* EMAIL FIELD */}
           <input
             type="email"
             placeholder="Введите ваш e-mail"
@@ -236,6 +237,7 @@ export default function Page() {
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
           />
 
+          {/* SEND BUTTON */}
           <button
             onClick={async () => {
               if (!email) return setMessage("Введите e-mail");
@@ -243,7 +245,7 @@ export default function Page() {
               setMessage("");
 
               try {
-                const res = await fetch("https://poligram-server.vercel.app/api/submit", {
+                const res = await fetch("/api/send-result", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
