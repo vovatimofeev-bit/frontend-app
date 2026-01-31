@@ -17,7 +17,7 @@ export default function LitePage() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  // ✅ NEW — METRICS
+  // ✅ NEW — METRICS STORAGE
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -90,6 +90,7 @@ export default function LitePage() {
     requestAnimationFrame(listen);
   }
 
+  /* ================= START ================= */
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -97,6 +98,10 @@ export default function LitePage() {
           <h1 className="text-3xl font-semibold">
             Психологический тест для пар Poligramm Lite
           </h1>
+          <p className="text-neutral-300 leading-relaxed">
+            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
+            и высоконагруженных сценариях.
+          </p>
           <button
             onClick={() => setStage("test")}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
@@ -108,11 +113,20 @@ export default function LitePage() {
     );
   }
 
+  /* ================= END ================= */
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
+          <p className="text-neutral-300 leading-relaxed">
+            Результаты тестирования обрабатываются индивидуально.
+            <br /><br />
+            В течение 24 часов вы получите файл с аналитическим заключением
+            на указанный e-mail.
+            <br/><br/>
+            Конфиденциальность гарантирована. Данные не передаются третьим лицам.
+          </p>
 
           <input
             type="email"
@@ -121,6 +135,10 @@ export default function LitePage() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
           />
+
+          <p className="text-xs text-neutral-500">
+            E-mail используется только для отправки результата
+          </p>
 
           <button
             onClick={async () => {
@@ -134,16 +152,21 @@ export default function LitePage() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     email,
-                    version: "LITE",
+                    version: "Lite",
                     metrics: metricsRef.current
                   }),
                 });
 
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат отправлен");
-                else setMessage("Ошибка при отправке.");
-              } catch {
-                setMessage("Ошибка при отправке.");
+
+                if (res.ok && data.status === "ok") {
+                  setMessage("Результат отправлен");
+                } else {
+                  setMessage("Ошибка при отправке. Попробуйте позже.");
+                }
+              } catch (err) {
+                console.error(err);
+                setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
               }
@@ -151,7 +174,7 @@ export default function LitePage() {
             disabled={sending}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
           >
-            {sending ? "Отправка..." : "Отправить результат"}
+            {sending ? "Отправка..." : "Получить результат"}
           </button>
 
           {message && <p className="text-sm text-yellow-400">{message}</p>}
@@ -160,6 +183,7 @@ export default function LitePage() {
     );
   }
 
+  /* ================= TEST ================= */
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
@@ -167,6 +191,12 @@ export default function LitePage() {
           Вопрос {index + 1} из {liteQuestions.length}
         </div>
         <div className="text-2xl leading-relaxed">{liteQuestions[index].text}</div>
+        <div className="h-1 bg-neutral-800 rounded">
+          <div
+            className="h-1 bg-neutral-300 rounded transition-all"
+            style={{ width: `${((index + 1) / liteQuestions.length) * 100}%` }}
+          />
+        </div>
       </div>
     </main>
   );
