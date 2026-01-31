@@ -127,6 +127,7 @@ export default function Page() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
+  // ✅ NEW — METRICS STORAGE
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -199,7 +200,6 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
-  // START — ОРИГИНАЛ
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -222,7 +222,6 @@ export default function Page() {
     );
   }
 
-  // END
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -255,14 +254,10 @@ export default function Page() {
                 });
 
                 const data = await res.json();
-
-                if (res.ok && data.status === "ok") {
-                  setMessage("Результат отправлен");
-                } else {
-                  setMessage("Ошибка при отправке. Повторите позже.");
-                }
+                if (data.status === "ok") setMessage("Результат отправлен");
+                else setMessage("Ошибка при отправке. Попробуйте позже.");
               } catch {
-                setMessage("Ошибка при отправке. Повторите позже.");
+                setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
               }
@@ -279,7 +274,6 @@ export default function Page() {
     );
   }
 
-  // TEST
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
