@@ -1,22 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-// ✅ ВСЕ вопросы PRO
-const questions: string[] = [
-  "Вы понимаете, что сейчас будет происходить?",
-  "Вы даёте согласие на прохождение теста?",
-  "Вы готовы следовать инструкциям до конца?",
-  "Вы чувствуете себя достаточно собранно?",
-  "Ваше состояние можно назвать обычным?",
-  "Вы выспались сегодня?",
-  "Вы не испытываете физического дискомфорта?",
-  "Вам сейчас комфортно продолжать?",
-  "Вы готовы быть внимательны к своим реакциям?",
-  "Вы готовы начать процедуру?",
-  // ... (все остальные вопросы, как у тебя)
-  "Вы довольны?"
-];
+import { proQuestions } from "@/app/data/questions-pro";
 
 export default function Page() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
@@ -32,7 +17,6 @@ export default function Page() {
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  // METRICS STORAGE
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -84,6 +68,7 @@ export default function Page() {
         const now = Date.now();
 
         metricsRef.current.push({
+          block: "pro",
           questionIndex: prev,
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
@@ -93,7 +78,7 @@ export default function Page() {
 
         questionStartRef.current = now;
 
-        if (prev < questions.length - 1) return prev + 1;
+        if (prev < proQuestions.length - 1) return prev + 1;
         setStage("end");
         return prev;
       });
@@ -104,6 +89,7 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
+  // ===== START (ВОЗВРАЩЕНО КАК БЫЛО) =====
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -126,13 +112,13 @@ export default function Page() {
     );
   }
 
+  // ===== END =====
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h2 className="text-2xl font-semibold">Вы завершили тестирование</h2>
 
-          {/* EMAIL FIELD */}
           <input
             type="email"
             placeholder="Введите ваш e-mail"
@@ -141,7 +127,6 @@ export default function Page() {
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
           />
 
-          {/* SEND BUTTON */}
           <button
             onClick={async () => {
               if (!email) return setMessage("Введите e-mail");
@@ -154,7 +139,7 @@ export default function Page() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     email,
-                    version: "PRO", // для PRO версии
+                    version: "PRO",
                     metrics: metricsRef.current
                   }),
                 });
@@ -180,18 +165,22 @@ export default function Page() {
     );
   }
 
-  /* TEST STAGE */
+  // ===== TEST =====
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
         <div className="text-sm text-neutral-400">
-          Вопрос {index + 1} из {questions.length}
+          Вопрос {index + 1} из {proQuestions.length}
         </div>
-        <div className="text-2xl leading-relaxed">{questions[index]}</div>
+
+        <div className="text-2xl leading-relaxed">
+          {proQuestions[index].text}
+        </div>
+
         <div className="h-1 bg-neutral-800 rounded">
           <div
             className="h-1 bg-neutral-300 rounded transition-all"
-            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+            style={{ width: `${((index + 1) / proQuestions.length) * 100}%` }}
           />
         </div>
       </div>
