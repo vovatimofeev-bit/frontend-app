@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { proQuestions } from "@/app/data/questions-pro";
+import { proQuestions } from "@/app/data/questions";
+
 
 export default function Page() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
