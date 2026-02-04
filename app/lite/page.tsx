@@ -95,7 +95,7 @@ export default function LitePage() {
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h1 className="text-3xl font-semibold">
-            Poligramm Lite — тест реакций в темах доверия и искренности
+            Poligramm Lite — Анализ реакций на искренность и доверие 
           </h1>
           <p className="text-neutral-300 leading-relaxed">
             Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
