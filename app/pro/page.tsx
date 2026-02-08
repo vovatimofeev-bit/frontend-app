@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { questions } from "@/app/data/questions";
 
 export default function Page() {
-  const router = useRouter();
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
@@ -15,7 +13,6 @@ export default function Page() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataRef = useRef<Float32Array | null>(null);
-
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
   const metricsRef = useRef<any[]>([]);
@@ -26,12 +23,10 @@ export default function Page() {
 
     async function initMic() {
       try {
-        // ✅ Стандартный запрос микрофона
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
-
         analyser.fftSize = 2048;
         source.connect(analyser);
 
@@ -61,7 +56,6 @@ export default function Page() {
 
     const analyser = analyserRef.current!;
     const data = dataRef.current!;
-
     analyser.getFloatTimeDomainData(data);
 
     let rms = 0;
@@ -73,16 +67,14 @@ export default function Page() {
 
       setIndex((prev) => {
         const now = Date.now();
-
         metricsRef.current.push({
           block: "pro",
           questionIndex: prev,
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
           responseTimeMs: now - questionStartRef.current,
-          timestamp: now,
+          timestamp: now
         });
-
         questionStartRef.current = now;
 
         if (prev < questions.length - 1) return prev + 1;
@@ -96,7 +88,6 @@ export default function Page() {
     requestAnimationFrame(listen);
   }
 
-  // ===== START =====
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -105,8 +96,7 @@ export default function Page() {
             Poligramm PRO — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br />
-            и высоконагруженных сценариях.
+            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки и высоконагруженных сценариях.
           </p>
           <button
             onClick={() => setStage("test")}
@@ -119,7 +109,6 @@ export default function Page() {
     );
   }
 
-  // ===== END =====
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -141,7 +130,6 @@ export default function Page() {
                 setMessage("Введите e-mail");
                 return;
               }
-
               setSending(true);
               setMessage("");
 
@@ -152,12 +140,11 @@ export default function Page() {
                   body: JSON.stringify({
                     email,
                     version: "PRO",
-                    metrics: metricsRef.current,
+                    metrics: metricsRef.current
                   }),
                 });
 
                 if (!res.ok) throw new Error("HTTP " + res.status);
-
                 const data = await res.json();
                 if (data.status === "ok") setMessage("Результат отправлен");
                 else setMessage("Ошибка сервера. Попробуйте позже.");
@@ -179,7 +166,6 @@ export default function Page() {
     );
   }
 
-  // ===== TEST =====
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">

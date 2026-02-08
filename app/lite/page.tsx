@@ -13,7 +13,6 @@ export default function LitePage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataRef = useRef<Float32Array | null>(null);
-
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
   const metricsRef = useRef<any[]>([]);
@@ -28,7 +27,6 @@ export default function LitePage() {
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
-
         analyser.fftSize = 2048;
         source.connect(analyser);
 
@@ -58,7 +56,6 @@ export default function LitePage() {
 
     const analyser = analyserRef.current!;
     const data = dataRef.current!;
-
     analyser.getFloatTimeDomainData(data);
 
     let rms = 0;
@@ -70,16 +67,14 @@ export default function LitePage() {
 
       setIndex((prev) => {
         const now = Date.now();
-
         metricsRef.current.push({
           block: "lite",
           questionIndex: prev,
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
           responseTimeMs: now - questionStartRef.current,
-          timestamp: now,
+          timestamp: now
         });
-
         questionStartRef.current = now;
 
         if (prev < liteQuestions.length - 1) return prev + 1;
@@ -93,7 +88,6 @@ export default function LitePage() {
     requestAnimationFrame(listen);
   }
 
-  // ===== START =====
   if (stage === "start") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -102,8 +96,7 @@ export default function LitePage() {
             Poligramm Lite — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях
-            повышенной психологической нагрузки и высоконагруженных сценариях.
+            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки и высоконагруженных сценариях.
           </p>
           <button
             onClick={() => setStage("test")}
@@ -116,7 +109,6 @@ export default function LitePage() {
     );
   }
 
-  // ===== END =====
   if (stage === "end") {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
@@ -138,7 +130,6 @@ export default function LitePage() {
                 setMessage("Введите e-mail");
                 return;
               }
-
               setSending(true);
               setMessage("");
 
@@ -149,12 +140,11 @@ export default function LitePage() {
                   body: JSON.stringify({
                     email,
                     version: "LITE",
-                    metrics: metricsRef.current,
+                    metrics: metricsRef.current
                   }),
                 });
 
                 if (!res.ok) throw new Error("HTTP " + res.status);
-
                 const data = await res.json();
                 if (data.status === "ok") setMessage("Результат отправлен");
                 else setMessage("Ошибка сервера. Попробуйте позже.");
@@ -176,7 +166,6 @@ export default function LitePage() {
     );
   }
 
-  // ===== TEST =====
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
       <div className="max-w-xl text-center space-y-6">
