@@ -24,7 +24,7 @@ export default function LitePage() {
 
     async function initMic() {
       try {
-        // Запрос микрофона через стандартное API
+        // Стандартный запрос микрофона
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
