@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic"; // обязательно для динамического API
-
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { Buffer } from "buffer";
@@ -7,15 +5,15 @@ import { Buffer } from "buffer";
 import { liteQuestions } from "@/app/data/questions-lite";
 import { questions as proQuestions } from "@/app/data/questions";
 
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-const MAIL_TO = process.env.MAIL_TO;
+const YOUR_EMAIL = process.env.MAIL_TO || "vova.timofeev@gmail.com";
+
+// Обязательно для динамического API
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const { email, version, metrics } = await req.json();
+    const body = await req.json();
+    const { email, version, metrics } = body;
 
     if (!metrics || !Array.isArray(metrics)) {
       return NextResponse.json(
@@ -24,10 +22,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const avg = (arr: number[]) =>
+      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
     const rmsValues = metrics.map((m: any) => Number(m.voiceRmsAvg ?? 0));
     const timeValues = metrics.map((m: any) => Number(m.responseTimeMs ?? 0));
-
-    const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
     const avgRms = avg(rmsValues);
     const avgTime = avg(timeValues);
@@ -58,47 +57,68 @@ export async function POST(req: Request) {
       return true;
     });
 
-    const getQuestionText = (index: number) =>
-      version === "LITE" ? liteQuestions[index]?.text || "(вопрос не найден)" : proQuestions[index] || "(вопрос не найден)";
+    function getQuestionText(index: number) {
+      if (version === "LITE") return liteQuestions[index]?.text || "(вопрос не найден)";
+      return proQuestions[index] || "(вопрос не найден)";
+    }
 
-    let text = `=== ПСИХОЭМОЦИОНАЛЬНЫЙ ПРОФИЛЬ РЕСПОНДЕНТА ===\n\n`;
-    text += `Email: ${email || "не указан"}\nТип теста: ${version || "не указан"}\n\n`;
+    let text = `ПСИХОЭМОЦИОНАЛЬНЫЙ ПРОФИЛЬ РЕСПОНДЕНТА\n\n`;
+    text += `=== ДАННЫЕ РЕСПОНДЕНТА ===\nEmail: ${email || "не указан"}\nТип теста: ${version || "не указан"}\n\n`;
+    text += `=== ГЛАВНЫЙ ВЫВОД ===\n`;
 
+    if (tense > reflective && tense > calm) {
+      text += `Высокая эмоциональная глубина, повышенная чувствительность и вовлечённость.\n`;
+    } else if (reflective > calm) {
+      text += `Аналитический, вдумчивый стиль реагирования.\n`;
+    } else {
+      text += `Эмоциональная устойчивость, спокойствие и внутреннее равновесие.\n`;
+    }
+
+    text += `\n=== ЭМОЦИОНАЛЬНЫЙ СРЕЗ ===\n`;
+    text += `Спокойные реакции: ${calm}\n`;
+    text += `Взвешенные реакции: ${reflective}\n`;
+    text += `Эмоционально напряжённые реакции: ${tense}\n\n`;
+
+    text += `=== ДЕТАЛЬНЫЙ АНАЛИЗ ПО ВОПРОСАМ ===\n\n`;
     uniqueMetrics.forEach((m: any) => {
       const qIndex = Number(m.questionIndex);
+      const questionText = getQuestionText(qIndex);
+      const state = getState(m);
+      const time = Number(m.responseTimeMs ?? 0).toFixed(0);
+      const rms = Number(m.voiceRmsAvg ?? 0).toFixed(4);
+
       text += `Вопрос ${qIndex + 1}:\n`;
-      text += `«${getQuestionText(qIndex)}»\n`;
-      text += `Голос RMS: ${(m.voiceRmsAvg ?? 0).toFixed(4)}\n`;
-      text += `Время реакции: ${(m.responseTimeMs ?? 0).toFixed(0)} мс\n`;
-      text += `Тип реакции: ${getState(m)}\n\n`;
+      text += `«${questionText}»\nВремя реакции: ${time} мс\nГолосовая амплитуда (RMS): ${rms}\nТип реакции: ${state}\n\n`;
     });
 
     const reportBuffer = Buffer.from(text, "utf-8");
 
     const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT) || 587,
       secure: false,
-      auth: { user: SMTP_USER!, pass: SMTP_PASS! }
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
     });
 
     await transporter.sendMail({
-      from: `"Poligramm Test" <${SMTP_USER}>`,
-      to: MAIL_TO,
+      from: `"Poligramm Test" <${process.env.SMTP_USER}>`,
+      to: YOUR_EMAIL,
       subject: `Новый результат теста ${version}`,
-      text: `Результаты респондента: ${email}`,
-      attachments: [{ filename: `result-${version}.txt`, content: reportBuffer }]
+      text: `Email респондента: ${email}`,
+      attachments: [
+        {
+          filename: `result-${version}.txt`,
+          content: reportBuffer,
+        },
+      ],
     });
 
     return NextResponse.json({ status: "ok" });
-
   } catch (err) {
     console.error("SERVER ERROR:", err);
     return NextResponse.json({ status: "error", message: "Ошибка сервера" }, { status: 500 });
   }
-}
-
-// Проверка маршрута в браузере
-export async function GET() {
-  return NextResponse.json({ status: "send-result alive" });
 }
