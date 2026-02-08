@@ -15,15 +15,26 @@ export default function LitePage() {
   const dataRef = useRef<Float32Array | null>(null);
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
-  const metricsRef = useRef<any[]>([]);
+
+  const metricsRef = useRef<
+    Array<{
+      block: string;
+      questionIndex: number;
+      voiceRmsAvg: number;
+      voiceRmsPeak: number;
+      responseTimeMs: number;
+      timestamp: number;
+    }>
+  >([]);
   const questionStartRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (stage !== "test") return;
+    if (typeof window === "undefined") return;
 
     async function initMic() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream: MediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
@@ -73,7 +84,7 @@ export default function LitePage() {
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
           responseTimeMs: now - questionStartRef.current,
-          timestamp: now
+          timestamp: now,
         });
         questionStartRef.current = now;
 
@@ -96,7 +107,7 @@ export default function LitePage() {
             Poligramm Lite — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки и высоконагруженных сценариях.
+            Использует логику протокольного опроса в условиях повышенной психологической нагрузки и высоконагруженных сценариев.
           </p>
           <button
             onClick={() => setStage("test")}
@@ -117,7 +128,7 @@ export default function LitePage() {
 
           <input
             type="email"
-            placeholder="Укажите свой e-mail"
+            placeholder="Введите ваш e-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded bg-neutral-900 border border-neutral-700"
@@ -126,8 +137,8 @@ export default function LitePage() {
           <button
             disabled={sending}
             onClick={async () => {
-              if (!email) {
-                setMessage("Введите e-mail");
+              if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                setMessage("Введите корректный e-mail");
                 return;
               }
               setSending(true);
@@ -140,16 +151,15 @@ export default function LitePage() {
                   body: JSON.stringify({
                     email,
                     version: "LITE",
-                    metrics: metricsRef.current
+                    metrics: metricsRef.current,
                   }),
                 });
 
-                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат отправлен");
+                if (data.message === "Результат отправлен") setMessage("Результат отправлен");
                 else setMessage("Ошибка сервера. Попробуйте позже.");
               } catch (e) {
-                console.error("SEND RESULT ERROR:", e);
+                console.error(e);
                 setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
@@ -172,9 +182,7 @@ export default function LitePage() {
         <div className="text-sm text-neutral-400">
           Вопрос {index + 1} из {liteQuestions.length}
         </div>
-
         <div className="text-2xl leading-relaxed">{liteQuestions[index].text}</div>
-
         <div className="h-1 bg-neutral-800 rounded">
           <div
             className="h-1 bg-neutral-300 rounded transition-all"

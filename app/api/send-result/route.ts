@@ -1,43 +1,56 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+type RequestBody = {
+  email: string;
+  version: "PRO" | "LITE";
+  metrics: Array<{
+    block: string;
+    questionIndex: number;
+    voiceRmsAvg: number;
+    voiceRmsPeak: number;
+    responseTimeMs: number;
+    timestamp: number;
+  }>;
+};
+
 export async function POST(req: Request) {
   try {
-    const { subject, text } = await req.json();
+    const { email, version, metrics } = (await req.json()) as RequestBody;
 
-    // === ДИАГНОСТИКА ENV ===
-    console.log("SMTP_HOST =", process.env.SMTP_HOST);
-    console.log("SMTP_PORT =", process.env.SMTP_PORT);
-    console.log("SMTP_USER =", process.env.SMTP_USER);
-    console.log(
-      "SMTP_PASS =",
-      process.env.SMTP_PASS ? "OK" : "MISSING"
-    );
-    // =======================
+    if (!email || !version || !metrics) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+    if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+      return NextResponse.json({ error: "SMTP not configured" }, { status: 500 });
+    }
 
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false, // true для 465, false для 587
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT),
+      secure: Number(SMTP_PORT) === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
+
+    const mailText = `
+Версия теста: ${version}
+E-mail: ${email}
+Метрики:
+${JSON.stringify(metrics, null, 2)}
+`;
 
     await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: process.env.SMTP_USER, // если хочешь, можно отдельный SMTP_TO
-      subject: subject || "Poligramm result",
-      text: text || "No text",
+      from: `"Poligramm" <${SMTP_USER}>`,
+      to: email,
+      subject: `Ваш результат Poligramm ${version}`,
+      text: mailText,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: "Результат отправлен" });
   } catch (error) {
     console.error("MAIL ERROR:", error);
-    return NextResponse.json(
-      { error: "Mail send failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Ошибка при отправке письма" }, { status: 500 });
   }
 }

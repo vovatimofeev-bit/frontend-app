@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { questions } from "@/app/data/questions";
 
-export default function Page() {
+export default function ProPage() {
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
@@ -13,17 +13,28 @@ export default function Page() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataRef = useRef<Float32Array | null>(null);
+
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
-  const metricsRef = useRef<any[]>([]);
+  const metricsRef = useRef<
+    Array<{
+      block: string;
+      questionIndex: number;
+      voiceRmsAvg: number;
+      voiceRmsPeak: number;
+      responseTimeMs: number;
+      timestamp: number;
+    }>
+  >([]);
   const questionStartRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (stage !== "test") return;
+    if (typeof window === "undefined") return;
 
     async function initMic() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream: MediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
@@ -73,7 +84,7 @@ export default function Page() {
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
           responseTimeMs: now - questionStartRef.current,
-          timestamp: now
+          timestamp: now,
         });
         questionStartRef.current = now;
 
@@ -96,7 +107,7 @@ export default function Page() {
             Poligramm PRO — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки и высоконагруженных сценариях.
+            Использует логику протокольного опроса в условиях повышенной психологической нагрузки и высоконагруженных сценариев.
           </p>
           <button
             onClick={() => setStage("test")}
@@ -126,8 +137,8 @@ export default function Page() {
           <button
             disabled={sending}
             onClick={async () => {
-              if (!email) {
-                setMessage("Введите e-mail");
+              if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                setMessage("Введите корректный e-mail");
                 return;
               }
               setSending(true);
@@ -140,16 +151,15 @@ export default function Page() {
                   body: JSON.stringify({
                     email,
                     version: "PRO",
-                    metrics: metricsRef.current
+                    metrics: metricsRef.current,
                   }),
                 });
 
-                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
-                if (data.status === "ok") setMessage("Результат отправлен");
+                if (data.message === "Результат отправлен") setMessage("Результат отправлен");
                 else setMessage("Ошибка сервера. Попробуйте позже.");
               } catch (e) {
-                console.error("SEND RESULT ERROR:", e);
+                console.error(e);
                 setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
@@ -172,9 +182,7 @@ export default function Page() {
         <div className="text-sm text-neutral-400">
           Вопрос {index + 1} из {questions.length}
         </div>
-
         <div className="text-2xl leading-relaxed">{questions[index]}</div>
-
         <div className="h-1 bg-neutral-800 rounded">
           <div
             className="h-1 bg-neutral-300 rounded transition-all"

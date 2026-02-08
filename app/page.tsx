@@ -2,27 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-//import { Permissions } from '@capacitor/permissions';
 
 export default function Page() {
   const router = useRouter();
 
-  // Запрос разрешения на микрофон при загрузке страницы
+  // Здесь не нужен запрос микрофона, он будет в PRO / LITE
   useEffect(() => {
-    async function requestMic() {
-      try {
-        const result = await Permissions.request({ name: 'microphone' });
-        console.log('Microphone permission:', result);
-
-        if (result.state !== 'granted') {
-          alert('Разрешение на микрофон не предоставлено. Работа приложения будет ограничена.');
-        }
-      } catch (error) {
-        console.error('Ошибка запроса микрофона:', error);
-      }
-    }
-
-    requestMic();
+    console.log("Стартовая страница загружена");
   }, []);
 
   return (
