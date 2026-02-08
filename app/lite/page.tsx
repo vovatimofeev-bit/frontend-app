@@ -24,7 +24,6 @@ export default function LitePage() {
 
     async function initMic() {
       try {
-        // Стандартный запрос микрофона
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
@@ -185,9 +184,7 @@ export default function LitePage() {
           Вопрос {index + 1} из {liteQuestions.length}
         </div>
 
-        <div className="text-2xl leading-relaxed">
-          {liteQuestions[index].text}
-        </div>
+        <div className="text-2xl leading-relaxed">{liteQuestions[index].text}</div>
 
         <div className="h-1 bg-neutral-800 rounded">
           <div

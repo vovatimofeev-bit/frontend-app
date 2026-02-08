@@ -26,7 +26,7 @@ export default function Page() {
 
     async function initMic() {
       try {
-        // Запрос микрофона через стандартное API
+        // ✅ Стандартный запрос микрофона
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
@@ -80,7 +80,7 @@ export default function Page() {
           voiceRmsAvg: rms,
           voiceRmsPeak: rms,
           responseTimeMs: now - questionStartRef.current,
-          timestamp: now
+          timestamp: now,
         });
 
         questionStartRef.current = now;
@@ -105,7 +105,7 @@ export default function Page() {
             Poligramm PRO — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
-            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
+            Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br />
             и высоконагруженных сценариях.
           </p>
           <button
@@ -152,7 +152,7 @@ export default function Page() {
                   body: JSON.stringify({
                     email,
                     version: "PRO",
-                    metrics: metricsRef.current
+                    metrics: metricsRef.current,
                   }),
                 });
 
@@ -187,9 +187,7 @@ export default function Page() {
           Вопрос {index + 1} из {questions.length}
         </div>
 
-        <div className="text-2xl leading-relaxed">
-          {questions[index]}
-        </div>
+        <div className="text-2xl leading-relaxed">{questions[index]}</div>
 
         <div className="h-1 bg-neutral-800 rounded">
           <div
