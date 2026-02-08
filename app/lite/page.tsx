@@ -24,6 +24,7 @@ export default function LitePage() {
 
     async function initMic() {
       try {
+        // Запрос микрофона через стандартное API
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
@@ -156,7 +157,8 @@ export default function LitePage() {
                 if (!res.ok) throw new Error("HTTP " + res.status);
 
                 const data = await res.json();
-                setMessage(data.status === "ok" ? "Результат отправлен" : "Ошибка сервера. Попробуйте позже.");
+                if (data.status === "ok") setMessage("Результат отправлен");
+                else setMessage("Ошибка сервера. Попробуйте позже.");
               } catch (e) {
                 console.error("SEND RESULT ERROR:", e);
                 setMessage("Ошибка при отправке. Попробуйте позже.");
