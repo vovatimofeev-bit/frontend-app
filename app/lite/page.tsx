@@ -16,7 +16,6 @@ export default function LitePage() {
 
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
-
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -24,21 +23,26 @@ export default function LitePage() {
     if (stage !== "test") return;
 
     async function initMic() {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
 
-      analyser.fftSize = 2048;
-      source.connect(analyser);
+        analyser.fftSize = 2048;
+        source.connect(analyser);
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      dataRef.current = new Float32Array(analyser.fftSize);
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        dataRef.current = new Float32Array(analyser.fftSize);
 
-      isListeningRef.current = true;
-      questionStartRef.current = Date.now();
-      listen();
+        isListeningRef.current = true;
+        questionStartRef.current = Date.now();
+        listen();
+      } catch (err) {
+        console.error("Ошибка доступа к микрофону:", err);
+        setMessage("Не удалось получить доступ к микрофону");
+      }
     }
 
     initMic();
@@ -149,17 +153,10 @@ export default function LitePage() {
                   }),
                 });
 
-                if (!res.ok) {
-                  throw new Error("HTTP " + res.status);
-                }
+                if (!res.ok) throw new Error("HTTP " + res.status);
 
                 const data = await res.json();
-
-                if (data.status === "ok") {
-                  setMessage("Результат отправлен");
-                } else {
-                  setMessage("Ошибка сервера. Попробуйте позже.");
-                }
+                setMessage(data.status === "ok" ? "Результат отправлен" : "Ошибка сервера. Попробуйте позже.");
               } catch (e) {
                 console.error("SEND RESULT ERROR:", e);
                 setMessage("Ошибка при отправке. Попробуйте позже.");

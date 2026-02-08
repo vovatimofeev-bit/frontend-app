@@ -18,7 +18,6 @@ export default function Page() {
 
   const isListeningRef = useRef(false);
   const cooldownRef = useRef(false);
-
   const metricsRef = useRef<any[]>([]);
   const questionStartRef = useRef<number>(Date.now());
 
@@ -26,21 +25,27 @@ export default function Page() {
     if (stage !== "test") return;
 
     async function initMic() {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
+      try {
+        // Запрос микрофона через стандартное API
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
 
-      analyser.fftSize = 2048;
-      source.connect(analyser);
+        analyser.fftSize = 2048;
+        source.connect(analyser);
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      dataRef.current = new Float32Array(analyser.fftSize);
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        dataRef.current = new Float32Array(analyser.fftSize);
 
-      isListeningRef.current = true;
-      questionStartRef.current = Date.now();
-      listen();
+        isListeningRef.current = true;
+        questionStartRef.current = Date.now();
+        listen();
+      } catch (err) {
+        console.error("Ошибка доступа к микрофону:", err);
+        setMessage("Не удалось получить доступ к микрофону");
+      }
     }
 
     initMic();
@@ -141,7 +146,6 @@ export default function Page() {
               setMessage("");
 
               try {
-                // ✅ Используем проверенный fetch как в Lite
                 const res = await fetch("/api/send-result", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
