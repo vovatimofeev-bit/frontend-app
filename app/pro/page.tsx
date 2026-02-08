@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { questions } from "@/app/data/questions";
 
 export default function Page() {
+  const router = useRouter();
   const [stage, setStage] = useState<"start" | "test" | "end">("start");
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
@@ -95,7 +97,7 @@ export default function Page() {
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h1 className="text-3xl font-semibold">
-            Poligramm PRO — Анализ реакций на искренность и доверие 
+            Poligramm PRO — Анализ реакций на искренность и доверие
           </h1>
           <p className="text-neutral-300 leading-relaxed">
             Использует логику протокольного опроса, применяемого в условиях повышенной психологической нагрузки <br/>
@@ -128,12 +130,18 @@ export default function Page() {
           />
 
           <button
+            disabled={sending}
             onClick={async () => {
-              if (!email) return setMessage("Введите e-mail");
+              if (!email) {
+                setMessage("Введите e-mail");
+                return;
+              }
+
               setSending(true);
               setMessage("");
 
               try {
+                // ✅ Используем проверенный fetch как в Lite
                 const res = await fetch("/api/send-result", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -144,16 +152,18 @@ export default function Page() {
                   }),
                 });
 
+                if (!res.ok) throw new Error("HTTP " + res.status);
+
                 const data = await res.json();
                 if (data.status === "ok") setMessage("Результат отправлен");
-                else setMessage("Ошибка при отправке. Попробуйте позже.");
-              } catch {
+                else setMessage("Ошибка сервера. Попробуйте позже.");
+              } catch (e) {
+                console.error("SEND RESULT ERROR:", e);
                 setMessage("Ошибка при отправке. Попробуйте позже.");
               } finally {
                 setSending(false);
               }
             }}
-            disabled={sending}
             className="px-6 py-3 bg-neutral-100 text-neutral-900 rounded"
           >
             {sending ? "Отправка..." : "Отправить результат"}

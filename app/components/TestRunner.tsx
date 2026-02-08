@@ -8,47 +8,40 @@ type Props = {
 
 export default function TestRunner({ questions }: Props) {
   const [index, setIndex] = useState(0);
+  const [started, setStarted] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataRef = useRef<Float32Array | null>(null);
-
-  const isListeningRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
   const cooldownRef = useRef(false);
 
-  useEffect(() => {
-    async function initMic() {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  async function startTest() {
+    if (started) return;
+    setStarted(true);
 
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      analyser.fftSize = 2048;
-      source.connect(analyser);
+    const audioContext = new AudioContext();
+    await audioContext.resume(); // критично для Android WebView
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      dataRef.current = new Float32Array(analyser.fftSize);
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
 
-      isListeningRef.current = true;
-      listen();
-    }
+    analyser.fftSize = 2048;
+    source.connect(analyser);
 
-    initMic();
+    audioContextRef.current = audioContext;
+    analyserRef.current = analyser;
+    dataRef.current = new Float32Array(analyser.fftSize);
 
-    return () => {
-      isListeningRef.current = false;
-      audioContextRef.current?.close();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    listen();
+  }
 
   function listen() {
-    if (!isListeningRef.current) return;
-
-    const analyser = analyserRef.current!;
-    const data = dataRef.current!;
+    const analyser = analyserRef.current;
+    const data = dataRef.current;
+    if (!analyser || !data) return;
 
     analyser.getFloatTimeDomainData(data);
 
@@ -70,27 +63,43 @@ export default function TestRunner({ questions }: Props) {
       }, 1200);
     }
 
-    requestAnimationFrame(listen);
+    rafRef.current = requestAnimationFrame(listen);
   }
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      audioContextRef.current?.close();
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
-      <div className="max-w-xl text-center space-y-6">
-        <div className="text-sm text-neutral-400">
-          Вопрос {index + 1} из {questions.length}
-        </div>
+      {!started ? (
+        <button
+          onClick={startTest}
+          className="px-6 py-3 bg-neutral-200 text-black rounded-lg text-lg"
+        >
+          Начать тест
+        </button>
+      ) : (
+        <div className="max-w-xl text-center space-y-6">
+          <div className="text-sm text-neutral-400">
+            Вопрос {index + 1} из {questions.length}
+          </div>
 
-        <div className="text-2xl leading-relaxed">
-          {questions[index]}
-        </div>
+          <div className="text-2xl leading-relaxed">
+            {questions[index]}
+          </div>
 
-        <div className="h-1 bg-neutral-800 rounded">
-          <div
-            className="h-1 bg-neutral-300 rounded transition-all"
-            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
-          />
+          <div className="h-1 bg-neutral-800 rounded">
+            <div
+              className="h-1 bg-neutral-300 rounded transition-all"
+              style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

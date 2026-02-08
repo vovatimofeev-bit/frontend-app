@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Poligramm</string>
+    <string name="title_activity_main">Poligramm</string>
+    <string name="package_name">app.poligramm.test</string>
+    <string name="custom_url_scheme">app.poligramm.test</string>
+</resources>

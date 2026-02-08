@@ -1,10 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+//import { Permissions } from '@capacitor/permissions';
 
 export default function Page() {
   const router = useRouter();
+
+  // Запрос разрешения на микрофон при загрузке страницы
+  useEffect(() => {
+    async function requestMic() {
+      try {
+        const result = await Permissions.request({ name: 'microphone' });
+        console.log('Microphone permission:', result);
+
+        if (result.state !== 'granted') {
+          alert('Разрешение на микрофон не предоставлено. Работа приложения будет ограничена.');
+        }
+      } catch (error) {
+        console.error('Ошибка запроса микрофона:', error);
+      }
+    }
+
+    requestMic();
+  }, []);
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
