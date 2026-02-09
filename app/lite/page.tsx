@@ -137,18 +137,39 @@ export default function LitePage() {
     setSending(true);
     setMessage("");
 
-    // ФИКС: Используем Vercel URL для мобильного приложения
+    // УМНЫЙ ВЫБОР URL ДЛЯ РАЗНЫХ СРЕД
     let apiUrl;
     
-    if (window.location.protocol === 'file:' || 
-        window.location.protocol === 'capacitor:' ||
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      // Мобильное приложение
+    // Проверяем, находимся ли мы в нативном мобильном приложении
+    const isNativeApp = window.location.protocol === 'file:' || 
+                        window.location.protocol === 'capacitor:';
+    
+    // Проверяем, мобильный ли браузер
+    const isMobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
+    // Проверяем, локальный ли хост
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname.includes('192.168.');
+    
+    if (isNativeApp) {
+      // Нативное мобильное приложение - используем Vercel
+      apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
+    } else if (isMobileBrowser && !isLocalhost) {
+      // Мобильный браузер на реальном сайте - используем Vercel
       apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
     } else {
-      // Браузер
+      // Локальная разработка или десктоп - относительный путь
       apiUrl = '/api/send-result';
     }
+
+    console.log('Отправка результатов:', {
+      apiUrl,
+      isNativeApp,
+      isMobileBrowser,
+      isLocalhost,
+      protocol: window.location.protocol,
+      hostname: window.location.hostname
+    });
 
     try {
       const response = await fetch(apiUrl, {
@@ -164,19 +185,28 @@ export default function LitePage() {
         }),
       });
       
-      const data = await response.json().catch(async () => {
+      console.log('Статус ответа:', response.status);
+      
+      // Пробуем получить JSON, если не получается - текст
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
         const text = await response.text();
-        return { status: "error", message: "Неверный ответ сервера" };
-      });
+        console.error('Ошибка парсинга JSON:', text);
+        data = { error: "Неверный ответ сервера", text };
+      }
+
+      console.log('Ответ сервера:', data);
 
       if (data.ok || data.message?.includes("отправлен")) {
         setMessage("✅ Письмо отправлено. Вы получите отчет на указанный email в течение 24 часов.");
       } else {
-        setMessage(`❌ ${data.message || data.error || "Неизвестная ошибка"}`);
+        setMessage(`❌ ${data.message || data.error || "Неизвестная ошибка сервера"}`);
       }
     } catch (error: any) {
       console.error("Network error:", error);
-      setMessage("❌ Ошибка сети. Проверьте подключение.");
+      setMessage("❌ Ошибка сети. Проверьте подключение к интернету.");
     } finally {
       setSending(false);
     }

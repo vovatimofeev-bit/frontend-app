@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // Убрали output: 'export' чтобы API работало
   distDir: 'out',
   images: {
     unoptimized: true,

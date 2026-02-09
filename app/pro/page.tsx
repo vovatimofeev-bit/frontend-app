@@ -130,45 +130,82 @@ export default function ProPage() {
 
   const handleSendResults = async () => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setMessage("Введите корректный e-mail");
+      setMessage("❌ Введите корректный e-mail");
       return;
     }
     setSending(true);
     setMessage("");
 
-    // ФИКС: Используем Vercel URL для мобильного приложения
+    // УМНЫЙ ВЫБОР URL ДЛЯ РАЗНЫХ СРЕД
     let apiUrl;
     
-    if (window.location.protocol === 'file:' || 
-        window.location.protocol === 'capacitor:' ||
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      // Мобильное приложение
+    // Проверяем, находимся ли мы в нативном мобильном приложении
+    const isNativeApp = window.location.protocol === 'file:' || 
+                        window.location.protocol === 'capacitor:';
+    
+    // Проверяем, мобильный ли браузер
+    const isMobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
+    // Проверяем, локальный ли хост
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname.includes('192.168.');
+    
+    if (isNativeApp) {
+      // Нативное мобильное приложение - используем Vercel
+      apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
+    } else if (isMobileBrowser && !isLocalhost) {
+      // Мобильный браузер на реальном сайте - используем Vercel
       apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
     } else {
-      // Браузер
+      // Локальная разработка или десктоп - относительный путь
       apiUrl = '/api/send-result';
     }
+
+    console.log('Отправка результатов (PRO):', {
+      apiUrl,
+      isNativeApp,
+      isMobileBrowser,
+      isLocalhost,
+      protocol: window.location.protocol,
+      hostname: window.location.hostname
+    });
 
     try {
       const res = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           version: "PRO",
           metrics: metricsRef.current,
         }),
       });
 
-      const data = await res.json();
+      console.log('Статус ответа (PRO):', res.status);
+      
+      // Пробуем получить JSON, если не получается - текст
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonError) {
+        const text = await res.text();
+        console.error('Ошибка парсинга JSON (PRO):', text);
+        data = { error: "Неверный ответ сервера", text };
+      }
+
+      console.log('Ответ сервера (PRO):', data);
+
       if (data.ok || data.message?.includes("отправлен")) {
         setMessage("✅ Письмо отправлено. Вы получите отчет на указанный email в течение 24 часов.");
       } else {
         setMessage(`❌ ${data.message || data.error || "Ошибка сервера. Попробуйте позже."}`);
       }
-    } catch (e) {
-      console.error(e);
-      setMessage("❌ Ошибка при отправке. Проверьте подключение.");
+    } catch (e: any) {
+      console.error("Network error (PRO):", e);
+      setMessage("❌ Ошибка при отправке. Проверьте подключение к интернету.");
     } finally {
       setSending(false);
     }

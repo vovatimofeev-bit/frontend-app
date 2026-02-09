@@ -1,10 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
-    // 1. Получаем данные из запроса
     const data = await request.json();
-    
-    // 2. Проверяем что есть email
-    const { email, results } = data;
+    const { email } = data;
     
     if (!email) {
       return Response.json(
@@ -13,11 +12,9 @@ export async function POST(request) {
       );
     }
     
-    // 3. Здесь будет реальная отправка email
-    // Пока просто возвращаем успех
     return Response.json({ 
       ok: true, 
-      message: "Отчет отправлен (тестовый режим)",
+      message: "Отчет отправлен на Vercel",
       email: email
     });
     
@@ -29,11 +26,11 @@ export async function POST(request) {
   }
 }
 
-// Добавим GET для теста
+// Для теста
 export async function GET() {
   return Response.json({ 
     ok: true, 
-    message: "API работает!",
+    message: "API работает на Vercel",
     timestamp: new Date().toISOString()
   });
 }
