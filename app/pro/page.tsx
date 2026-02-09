@@ -136,8 +136,21 @@ export default function ProPage() {
     setSending(true);
     setMessage("");
 
+    // ФИКС: Используем Vercel URL для мобильного приложения
+    let apiUrl;
+    
+    if (window.location.protocol === 'file:' || 
+        window.location.protocol === 'capacitor:' ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // Мобильное приложение
+      apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
+    } else {
+      // Браузер
+      apiUrl = '/api/send-result';
+    }
+
     try {
-      const res = await fetch("/api/send-result", {
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,14 +161,14 @@ export default function ProPage() {
       });
 
       const data = await res.json();
-      if (data.status === "ok" || data.message === "Результат отправлен") {
+      if (data.ok || data.message?.includes("отправлен")) {
         setMessage("✅ Письмо отправлено. Вы получите отчет на указанный email в течение 24 часов.");
       } else {
-        setMessage("Ошибка сервера. Попробуйте позже.");
+        setMessage(`❌ ${data.message || data.error || "Ошибка сервера. Попробуйте позже."}`);
       }
     } catch (e) {
       console.error(e);
-      setMessage("Ошибка при отправке. Попробуйте позже.");
+      setMessage("❌ Ошибка при отправке. Проверьте подключение.");
     } finally {
       setSending(false);
     }
@@ -170,7 +183,7 @@ export default function ProPage() {
           </h1>
           <p className="text-neutral-300 leading-relaxed">
             Тест использует логику протокольного опроса, применяемого в условиях повышенной 
-            психологической нагрузки и высоконагруженных сценариев.
+            психологической нагрузки и высоконагруженных сценариях.
           </p>
           <button
             onClick={() => setStage("test")}

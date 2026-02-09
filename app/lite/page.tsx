@@ -137,8 +137,21 @@ export default function LitePage() {
     setSending(true);
     setMessage("");
 
+    // ФИКС: Используем Vercel URL для мобильного приложения
+    let apiUrl;
+    
+    if (window.location.protocol === 'file:' || 
+        window.location.protocol === 'capacitor:' ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // Мобильное приложение
+      apiUrl = 'https://frontend-app-mu-drab.vercel.app/api/send-result';
+    } else {
+      // Браузер
+      apiUrl = '/api/send-result';
+    }
+
     try {
-      const response = await fetch("/api/send-result", {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -156,10 +169,10 @@ export default function LitePage() {
         return { status: "error", message: "Неверный ответ сервера" };
       });
 
-      if (data.status === "ok" || data.message?.includes("отправлен")) {
+      if (data.ok || data.message?.includes("отправлен")) {
         setMessage("✅ Письмо отправлено. Вы получите отчет на указанный email в течение 24 часов.");
       } else {
-        setMessage(`❌ ${data.message || "Неизвестная ошибка"}`);
+        setMessage(`❌ ${data.message || data.error || "Неизвестная ошибка"}`);
       }
     } catch (error: any) {
       console.error("Network error:", error);
@@ -174,11 +187,11 @@ export default function LitePage() {
       <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center px-6">
         <div className="max-w-xl text-center space-y-6">
           <h1 className="text-3xl font-semibold">
-            Poligramm Lite — Анализ реакций на доверие и искренность
+            Poligramm Lite — Анализ реакций на доверие и искшенность
           </h1>
           <p className="text-neutral-300 leading-relaxed">
             Тест использует логику протокольного опроса, применяемого в условиях повышенной 
-            психологической нагрузки и высоконагруженных сценариев.
+            психологической нагрузки и высоконагруженных сценариях.
           </p>
           <button
             onClick={() => setStage("test")}
