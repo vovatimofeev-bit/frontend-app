@@ -1,36 +1,56 @@
-export const dynamic = 'force-dynamic';
+import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const data = await request.json();
-    const { email } = data;
+    const { email, version, metrics } = await request.json();
     
-    if (!email) {
-      return Response.json(
-        { error: "Email обязателен" },
-        { status: 400 }
-      );
-    }
+    console.log('📨 Получены результаты:', { 
+      email, 
+      version, 
+      questions: metrics?.length || 0 
+    });
     
-    return Response.json({ 
-      ok: true, 
-      message: "Отчет отправлен на Vercel",
-      email: email
+    return NextResponse.json({
+      ok: true,
+      message: `✅ Результаты получены! Отчет будет отправлен на ${email}`,
+      received: {
+        email,
+        version,
+        questions: metrics?.length || 0,
+        timestamp: new Date().toISOString()
+      }
+    }, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
     });
     
   } catch (error) {
-    return Response.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    console.error('❌ Ошибка:', error);
+    
+    return NextResponse.json({
+      ok: false,
+      message: '❌ Ошибка обработки запроса',
+      error: error.message
+    }, {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   }
 }
 
-// Для теста
-export async function GET() {
-  return Response.json({ 
-    ok: true, 
-    message: "API работает на Vercel",
-    timestamp: new Date().toISOString()
+export async function OPTIONS(request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+      'Access-Control-Max-Age': '86400',
+    },
   });
 }
