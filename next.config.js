@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Убрали output: 'export' чтобы API работало
-  distDir: 'out',
-  images: {
-    unoptimized: true,
-  },
-  trailingSlash: true,
-};
+  reactStrictMode: true,
+  swcMinify: true,
+}
 
-export default nextConfig;
+module.exports = nextConfig
