@@ -1,9 +1,12 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.poligramm.test',  // уникальный идентификатор
-  appName: 'Poligramm',
+  appId: 'com.poligram.app',
+  appName: 'Poligram',
   webDir: 'out',
+  server: {
+    androidScheme: 'https'
+  }
 };
 
 export default config;

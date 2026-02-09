@@ -7,7 +7,8 @@ import { questions as proQuestions } from "@/app/data/questions";
 
 const YOUR_EMAIL = process.env.MAIL_TO || "bes8158@gmail.com";
 
-export const dynamic = "force-dynamic";
+// ЗАКОММЕНТИРОВАНО ДЛЯ СТАТИЧЕСКОГО ЭКСПОРТА
+// export const dynamic = "force-dynamic";
 
 // Функция для определения типа реакции
 function getReactionType(rms: number, time: number, avgRms: number, avgTime: number): {
@@ -171,6 +172,14 @@ function generateReport(
 }
 
 export async function POST(req: Request) {
+  // Для статического экспорта возвращаем заглушку
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ 
+      status: "static_build",
+      message: "API работает только на сервере. Для мобильного приложения используйте внешний API сервер."
+    });
+  }
+
   try {
     console.log("📧 Генерация отчета...");
     const body = await req.json();
